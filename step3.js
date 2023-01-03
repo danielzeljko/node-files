@@ -1,8 +1,12 @@
+"use strict";
+
 const axios = require("axios");
 const fsP = require("fs/promises");
 const URL = require("url").URL;
 const arg = process.argv[2];
 
+/** Returns and console logs the contents of the file path.
+ */
 async function cat(path) {
     let contents;
     try {
@@ -15,6 +19,25 @@ async function cat(path) {
     return contents;
 }
 
+/** Returns and console logs the contents of the url.
+ */
+async function webCat(url) {
+    let resp;
+    try {
+        resp = await axios.get(url);
+    } catch (err) {
+        console.log(
+            `Error fetching ${url}:
+            Error: Request failed with status code ${err.response.status}`
+        );
+        process.exit(1);
+    }
+    console.log(resp.data.slice(0, 80), "...");
+    return resp.data;
+}
+
+/** Writes contents to the path.
+ */
 async function echo(contents, path) {
     try {
         await fsP.writeFile(path, contents, "utf8");
@@ -24,41 +47,44 @@ async function echo(contents, path) {
     }
 }
 
-// TODO: fix the try block
-async function webCat(url) {
-    try {
-        const resp = await axios.get(url);
-        console.log(resp.data.slice(0, 80), "...");
-    } catch (err) {
-        console.log(
-            `Error fetching ${url}:
-            Error: Request failed with status code ${err.response.status}`
-        );
-        process.exit(1);
-    }
-}
-
-if (arg === "--out") {
-    exportFile();
-} else {
-    try {
-        new URL(arg);
-        webCat(arg);
-    } catch (err) {
-        cat(arg);
-    }
-}
-
+/** Determines if original path is a file or url, calls the appropriate
+ *  cat function on it, then calls the echo function to write the contents
+ *  to the new path.
+ */
 async function exportFile() {
     const newPath = process.argv[3];
     const ogPath = process.argv[4];
 
-    let ogContents;
+    let contents;
     try {
-        ogContents = await cat(ogPath);
-        await echo(ogContents, newPath);
+        if (isURL(ogPath)) {
+            contents = await webCat(ogPath);
+        } else {
+            contents = await cat(ogPath);
+        }
+        await echo(contents, newPath);
     } catch (err) {
         console.log(err);
         process.exit(1);
     }
+}
+
+/** Returns true if input path is a url, false otherwise. */
+function isURL(path) {
+    try {
+        new URL(path);
+        return true;
+    } catch (err) {
+        return false;
+    }
+}
+
+if (arg !== "--out") {
+    if (isURL(arg)) {
+        webCat(arg);
+    } else {
+        cat(arg);
+    }
+} else {
+    exportFile();
 }
