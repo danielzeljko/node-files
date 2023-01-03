@@ -30,7 +30,7 @@ async function handleArg() {
         } else {
             contents = await cat(ogPath);
         }
-        await echo(contents, newPath);
+        return await echo(contents, newPath);
     } catch (err) {
         console.log(err);
         process.exit(1);
