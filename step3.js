@@ -47,11 +47,21 @@ async function echo(contents, path) {
     }
 }
 
-/** Determines if original path is a file or url, calls the appropriate
+/** Returns the appropriate cat function if the arg isn't "--out".
+ *  Otherwise,
+ *  Determines if original path is a file or url, calls the appropriate
  *  cat function on it, then calls the echo function to write the contents
  *  to the new path.
  */
-async function exportFile() {
+async function handleArg() {
+    if (arg !== "--out") {
+        if (isURL(arg)) {
+            return webCat(arg);
+        } else {
+            return cat(arg);
+        }
+    }
+
     const newPath = process.argv[3];
     const ogPath = process.argv[4];
 
@@ -79,12 +89,4 @@ function isURL(path) {
     }
 }
 
-if (arg !== "--out") {
-    if (isURL(arg)) {
-        webCat(arg);
-    } else {
-        cat(arg);
-    }
-} else {
-    exportFile();
-}
+handleArg();
